@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 320
@@ -62,20 +63,35 @@ int main(int argc, char *argv[]) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // bg col
   SDL_RenderClear(renderer);
   SDL_RenderPresent(renderer);
-
+  
   SDL_Event event;
+  time_t start = time(NULL);
+  int cycles = 0;
   int quit = 0;
-  while (!quit) {
+
+  while (quit != 1) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT) {
         quit = 1;
       }
     }
-    for (int fps = 0; fps < 10; fps++) {
-      chip_run(&chip);
-      update_renderer(renderer, chip.display);
+
+    chip_run(&chip);
+    update_renderer(renderer, chip.display);
+    cycles++;
+
+    // handle user input
+
+    if (cycles % 10 == 0) {
+      chip_timers(&chip);
     }
   }
+  
+  // useful for debug etc etc
+  double duration = (double)(time(NULL) - start);
+  printf("\nSession:\n");
+  printf("Duration: %.2fs\n", duration);
+  printf("Cycles: %i\n", cycles);
 
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
