@@ -170,14 +170,8 @@ void decode(chip_t *chip, uint16_t opcode) {
   case 0xE:
     switch (opcode & 0x00FF) {
     case 0x9E: /* skp vx */
-      /* if (chip->keys[chip->V[x]]) {
-        chip->pc += 2;
-      } */
       break;
-    case 0xA1: /* sknp vx */
-      /* if (!chip->keys[chip->V[x]]) {
-        chip->pc += 2;
-      } */
+    case 0xA1: /* sknp vx */ 
       break;
     }
     break;
@@ -186,13 +180,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x07: /* mov vx,dt */
       chip->V[x] = chip->delay_timer;
       break;
-    case 0x0A: /* key vx */
-      /* for (int i = 0; i < 16; i++) {
-        if (chip->keys[i]) {
-          chip->V[x] = i;
-          return;
-        }
-      } */
+    case 0x0A: /* key vx */ 
       break;
     case 0x15: /* mov dt,vx */
       chip->delay_timer = chip->V[x];
@@ -223,6 +211,9 @@ void decode(chip_t *chip, uint16_t opcode) {
       break;
     }
     break;
+    default:
+      printf("unknown opcode: %x", opcode);
+      break;
   }
 }
 void chip_init(chip_t *chip, char *filename) {
