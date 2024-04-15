@@ -31,9 +31,7 @@ uint16_t fetch_opcode(chip_t *chip) {
 
   uint16_t opcode = (byte1 << 8) | byte2;
 
-  if (!chip->halted) {
-    chip->pc += 0x2;
-  }
+  chip->pc += 0x2;
 
   return opcode;
 }
@@ -143,7 +141,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     // superchip : chip->pc = nnn + chip->V[x];
     return;
   case 0xC: { /* rnd vx,nn */
-    uint8_t randv = rand() % 0xFF + 0;
+    uint8_t randv = rand() & 0xFF;
     chip->V[x] = randv & nn;
   } break;
   case 0xD: { /* dxyn (draw) */
@@ -196,16 +194,21 @@ void decode(chip_t *chip, uint16_t opcode) {
       chip->V[x] = chip->delay_timer;
       break;
     case 0x0A: { /* key vx */
-      bool halt = true;
+      int keycode = -1;
+      chip->halted = false;
       for (int i = 0; i < 16; ++i) { // should wait for release but idk how
         if (chip->keys[i]) {
-          chip->V[x] = i;
-          halt = false;
+          keycode = i;
+          chip->halted = true;
           break;
         }
       }
-
-      if (halt) {
+      if (keycode >= 0 && chip->halted) {
+        if (!chip->keys[keycode]) {
+          chip->V[x] = keycode;
+          break;
+        }
+      } else {
         chip->pc -= 2;
       }
     } break;
@@ -251,6 +254,8 @@ void chip_init(chip_t *chip, char *filename) {
   chip->pc = 0x200;
   chip->I = 0;
   chip->sp = -1;
+
+  chip->halted = false;
 
   chip->delay_timer = 0;
   chip->sound_timer = 0;
