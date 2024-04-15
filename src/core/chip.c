@@ -141,7 +141,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     // superchip : chip->pc = nnn + chip->V[x];
     return;
   case 0xC: { /* rnd vx,nn */
-    uint8_t randv = rand() & 0xFF;
+    uint8_t randv = rand() % 0xFF;
     chip->V[x] = randv & nn;
   } break;
   case 0xD: { /* dxyn (draw) */
