@@ -97,14 +97,16 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x3: /* xor vx,vy */
       chip->V[x] ^= chip->V[y];
       break;
-    case 0x4: /* add vx,vy */
-      chip->V[0xF] = (chip->V[x] + chip->V[y] > 0xFF) ? 1 : 0;
+    case 0x4: { /* add vx,vy */
+      uint8_t vx = chip->V[x];
       chip->V[x] += chip->V[y];
-      break;
-    case 0x5: /* sub vx,vy */
-      chip->V[0xF] = (chip->V[x] > chip->V[y]) ? 1 : 0;
+      chip->V[0xF] = (vx + chip->V[y] > 0xFF) ? 1 : 0;
+    } break;
+    case 0x5: { /* sub vx,vy */
+      uint8_t vx = chip->V[x];
       chip->V[x] -= chip->V[y];
-      break;
+      chip->V[0xF] = (vx > chip->V[y]) ? 1 : 0;
+    } break;
     case 0x6: /* shr vx {,vy} */
       chip->V[0xF] = chip->V[x] & 0b1;
       chip->V[x] >>= 1;
