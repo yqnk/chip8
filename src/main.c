@@ -11,10 +11,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGHT 320
 #define SCALE 10
-
 #define FPS 6000
 #define FRAME_TIME (1000 / FPS)
 
@@ -103,9 +100,9 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  SDL_Window *window = SDL_CreateWindow("Chip-8", SDL_WINDOWPOS_UNDEFINED,
-                                        SDL_WINDOWPOS_UNDEFINED, WINDOW_WIDTH,
-                                        WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+  SDL_Window *window = SDL_CreateWindow(
+      "Chip-8", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+      DISPLAY_WIDTH * SCALE, DISPLAY_HEIGHT * SCALE, SDL_WINDOW_SHOWN);
   if (window == NULL) {
     fprintf(stderr, "error while creating window : %s\n", SDL_GetError());
     return 1;
@@ -131,7 +128,6 @@ int main(int argc, char *argv[]) {
   int cycles = 0;
   int quit = 0;
 
-
   while (quit != 1) {
     frame_start = SDL_GetTicks();
     while (SDL_PollEvent(&event)) {
@@ -148,12 +144,12 @@ int main(int argc, char *argv[]) {
     chip_run(&chip);
     update_renderer(renderer, chip.display);
     cycles++;
-    
+
     // [cycles % c] | c: 1 = fast emulation, inf = slow emulation
     if (cycles % 10 == 0) {
       chip_timers(&chip);
     }
-    
+
     // adjust fps
     frame_time = SDL_GetTicks() - frame_start;
     if (frame_time < FRAME_TIME) {
