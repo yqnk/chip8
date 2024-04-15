@@ -31,7 +31,9 @@ uint16_t fetch_opcode(chip_t *chip) {
 
   uint16_t opcode = (byte1 << 8) | byte2;
 
-  chip->pc += 0x2;
+  if (!chip->halted) {
+    chip->pc += 0x2;
+  }
 
   return opcode;
 }
@@ -90,12 +92,15 @@ void decode(chip_t *chip, uint16_t opcode) {
       break;
     case 0x1: /* or vx,vy */
       chip->V[x] |= chip->V[y];
+      chip->V[0xF] = 0;
       break;
     case 0x2: /* and vx,vy */
       chip->V[x] &= chip->V[y];
+      chip->V[0xF] = 0;
       break;
     case 0x3: /* xor vx,vy */
       chip->V[x] ^= chip->V[y];
+      chip->V[0xF] = 0;
       break;
     case 0x4: { /* add vx,vy */
       uint8_t vx = chip->V[x];
@@ -109,7 +114,8 @@ void decode(chip_t *chip, uint16_t opcode) {
     } break;
     case 0x6: { /* shr vx {,vy} */
       uint8_t vx = chip->V[x];
-      chip->V[x] >>= 1;
+      chip->V[x] = chip->V[y] >> 1;
+      // superchip : chip->V[x] >>= 1;
       chip->V[0xF] = vx & 0b1;
     } break;
     case 0x7: /* subn vx,vy */
@@ -118,7 +124,8 @@ void decode(chip_t *chip, uint16_t opcode) {
       break;
     case 0xE: { /* shl vx {,vy} */
       uint8_t vx = chip->V[x];
-      chip->V[x] <<= 1;
+      chip->V[x] = chip->V[y] << 1;
+      // superchip : chip->V[x] <<= 1;
       chip->V[0xF] = vx >> 7;
     } break;
     }
@@ -133,6 +140,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     break;
   case 0xB: /* jump to nnn + V0 */
     chip->pc = nnn + chip->V[0];
+    // superchip : chip->pc = nnn + chip->V[x];
     return;
   case 0xC: { /* rnd vx,nn */
     uint8_t randv = rand() % 0xFF + 0;
@@ -168,11 +176,17 @@ void decode(chip_t *chip, uint16_t opcode) {
     }
     break;
   }
-  case 0xE: // TODO: impl keys
+  case 0xE:
     switch (opcode & 0x00FF) {
     case 0x9E: /* skp vx */
+      if (chip->keys[chip->V[x]]) {
+        chip->pc += 2;
+      }
       break;
     case 0xA1: /* sknp vx */
+      if (!chip->keys[chip->V[x]]) {
+        chip->pc += 2;
+      }
       break;
     }
     break;
@@ -181,8 +195,20 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x07: /* mov vx,dt */
       chip->V[x] = chip->delay_timer;
       break;
-    case 0x0A: /* key vx */
-      break;
+    case 0x0A: { /* key vx */
+      bool halt = true;
+      for (int i = 0; i < 16; ++i) { // should wait for release but idk how
+        if (chip->keys[i]) {
+          chip->V[x] = i;
+          halt = false;
+          break;
+        }
+      }
+
+      if (halt) {
+        chip->pc -= 2;
+      }
+    } break;
     case 0x15: /* mov dt,vx */
       chip->delay_timer = chip->V[x];
       break;
@@ -204,11 +230,15 @@ void decode(chip_t *chip, uint16_t opcode) {
       for (int i = 0; i <= x; i++) {
         chip->memory[chip->I + i] = chip->V[i];
       }
+      chip->I += x + 1;
+      // superchip : without this ^
       break;
     case 0x65: /* ld vx,[i] */
       for (int i = 0; i <= x; i++) {
         chip->V[i] = chip->memory[chip->I + i];
       }
+      chip->I += x + 1;
+      // superchip : without this ^
       break;
     }
     break;
@@ -227,6 +257,7 @@ void chip_init(chip_t *chip, char *filename) {
 
   memset(chip->memory, 0, MEMORY_SIZE);
   memset(chip->display, false, DISPLAY_HEIGHT * DISPLAY_WIDTH);
+  memset(chip->keys, false, 16);
   memset(chip->V, 0, 0xF);
 
   // load font

@@ -1,6 +1,7 @@
 #ifndef CHIP_H
 #define CHIP_H
 
+#include <SDL2/SDL.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -22,9 +23,12 @@ struct chip {
 
   uint8_t memory[MEMORY_SIZE];
   bool display[DISPLAY_WIDTH][DISPLAY_HEIGHT];
+  bool keys[16];
 
   uint16_t I;                // index register
   uint8_t V[REGISTER_COUNT]; // V0 -> VF
+
+  bool halted;
 };
 typedef struct chip chip_t;
 
