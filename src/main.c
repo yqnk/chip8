@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // bg col
   SDL_RenderClear(renderer);
   SDL_RenderPresent(renderer);
-  
+
   SDL_Event event;
   time_t start = time(NULL);
   int cycles = 0;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
       chip_timers(&chip);
     }
   }
-  
+
   // useful for debug etc etc
   double duration = (double)(time(NULL) - start);
   printf("\nSession:\n");

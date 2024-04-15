@@ -106,16 +106,16 @@ void decode(chip_t *chip, uint16_t opcode) {
       chip->V[x] -= chip->V[y];
       break;
     case 0x6: /* shr vx {,vy} */
+      chip->V[0xF] = chip->V[x] & 0b1;
       chip->V[x] >>= 1;
-      chip->V[0xF] = chip->V[x] & 0x1;
       break;
     case 0x7: /* subn vx,vy */
-      chip->V[0xF] = (chip->V[y] > chip->V[x]) ? 1 : 0;
       chip->V[x] = chip->V[y] - chip->V[x];
+      chip->V[0xF] = (chip->V[y] > chip->V[x]) ? 1 : 0;
       break;
     case 0xE: /* shl vx {,vy} */
-      chip->V[x] <<= 1;
       chip->V[0xF] = chip->V[x] & 0x1;
+      chip->V[x] <<= 1;
       break;
     }
     break;
@@ -164,7 +164,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     }
     break;
   }
-  case 0xE:
+  case 0xE: // TODO: impl keys
     switch (opcode & 0x00FF) {
     case 0x9E: /* skp vx */
       break;
