@@ -24,5 +24,5 @@ add_executable(emu-chip8 ${SOURCES})
 target_link_libraries(emu-chip8 ${SDL2_LIBRARIES})
 
 if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-    target_compile_options(emu-chip8 PRIVATE -std=c99 -O3 -Wall -Wextra -pedantic -fsanitize=address)
+    target_compile_options(emu-chip8 PRIVATE -std=c99 -O3 -Wall -Wextra -pedantic -fsanitize=address,undefined)
 endif()
