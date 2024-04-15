@@ -52,6 +52,8 @@ void decode(chip_t *chip, uint16_t opcode) {
     } else if (opcode == 0x00EE) { /* return */
       if (chip->sp > 0) {
         chip->pc = chip->stack[chip->sp--];
+      } else {
+        chip->pc = 0x200; // error, restart
       }
     }
     break;
@@ -103,12 +105,12 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x4: { /* add vx,vy */
       uint8_t vx = chip->V[x];
       chip->V[x] += chip->V[y];
-      chip->V[0xF] = (vx + chip->V[y] > 0xFF) ? 1 : 0;
+      chip->V[0xF] = (vx + chip->V[y] > 0xFF);
     } break;
     case 0x5: { /* sub vx,vy */
       uint8_t vx = chip->V[x];
       chip->V[x] -= chip->V[y];
-      chip->V[0xF] = (vx >= chip->V[y]) ? 1 : 0; // >= !!
+      chip->V[0xF] = (vx >= chip->V[y]); // >= !!
     } break;
     case 0x6: { /* shr vx {,vy} */
       uint8_t vx = chip->V[x];
@@ -118,7 +120,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     } break;
     case 0x7: /* subn vx,vy */
       chip->V[x] = chip->V[y] - chip->V[x];
-      chip->V[0xF] = (chip->V[y] > chip->V[x]) ? 1 : 0;
+      chip->V[0xF] = (chip->V[y] > chip->V[x]);
       break;
     case 0xE: { /* shl vx {,vy} */
       uint8_t vx = chip->V[x];
@@ -139,9 +141,9 @@ void decode(chip_t *chip, uint16_t opcode) {
   case 0xB: /* jump to nnn + V0 */
     chip->pc = nnn + chip->V[0];
     // superchip : chip->pc = nnn + chip->V[x];
-    return;
+    break;
   case 0xC: { /* rnd vx,nn */
-    uint8_t randv = rand() % 0xFF;
+    uint8_t randv = rand() & 0xFF;
     chip->V[x] = randv & nn;
   } break;
   case 0xD: { /* dxyn (draw) */
@@ -221,9 +223,11 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x18: /* mov st,vx */
       chip->sound_timer = chip->V[x];
       break;
-    case 0x1E: /* add i,vx */
+    case 0x1E: { /* add i,vx */
+      uint16_t tmpi = chip->I;
       chip->I += chip->V[x];
-      break;
+      chip->V[0xF] = (tmpi + chip->V[x] > 0xFFF);
+    } break;
     case 0x29: /* ld f,vx */
       chip->I = chip->V[x] * 0x05;
       break;
@@ -236,14 +240,14 @@ void decode(chip_t *chip, uint16_t opcode) {
       for (int i = 0; i <= x; i++) {
         chip->memory[chip->I + i] = chip->V[i];
       }
-      chip->I += x + 1;
+      // chip->I += x + 1;
       // superchip : without this ^
       break;
     case 0x65: /* ld vx,[i] */
       for (int i = 0; i <= x; i++) {
         chip->V[i] = chip->memory[chip->I + i];
       }
-      chip->I += x + 1;
+      // chip->I += x + 1;
       // superchip : without this ^
       break;
     }
