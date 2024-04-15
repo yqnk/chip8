@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
     cycles++;
 
     // [cycles % c] | c: 1 = fast emulation, inf = slow emulation
-    if (cycles % 10 == 0) {
+    if (cycles % 20 == 0) {
       chip_timers(&chip);
     }
 
