@@ -200,6 +200,9 @@ void decode(chip_t *chip, uint16_t opcode) {
         if (chip->keys[i]) {
           keycode = i;
           chip->halted = true;
+
+          SDL_Delay(150); // short delay after reading the key before checking
+                          // for its release
           break;
         }
       }
