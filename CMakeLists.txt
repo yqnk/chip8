@@ -18,7 +18,6 @@ include_directories(${SDL2_INCLUDE_DIRS})
 set(SOURCES
     src/main.c
     src/core/chip.c
-    src/core/stack.c
 )
 
 add_executable(emu-chip8 ${SOURCES})

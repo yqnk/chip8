@@ -1,8 +1,6 @@
 #ifndef CHIP_H
 #define CHIP_H
 
-#include "stack.h"
-
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -14,20 +12,19 @@
 #define REGISTER_COUNT 16
 
 struct chip {
-  stack_t stack;
-
   uint8_t delay_timer;
   uint8_t sound_timer;
 
   uint16_t pc;
+
+  uint16_t sp;
+  uint16_t stack[16];
 
   uint8_t memory[MEMORY_SIZE];
   bool display[DISPLAY_WIDTH][DISPLAY_HEIGHT];
 
   uint16_t I;                // index register
   uint8_t V[REGISTER_COUNT]; // V0 -> VF
-
-  size_t ticks;
 };
 typedef struct chip chip_t;
 

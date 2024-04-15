@@ -1,5 +1,4 @@
 #include "core/chip.h"
-#include "core/stack.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_rect.h>

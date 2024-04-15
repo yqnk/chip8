@@ -1,7 +1,5 @@
 #include "chip.h"
 
-#include "stack.h"
-
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,9 +50,8 @@ void decode(chip_t *chip, uint16_t opcode) {
     if (opcode == 0x00E0) { /* cls */
       memset(chip->display, false, DISPLAY_WIDTH * DISPLAY_HEIGHT);
     } else if (opcode == 0x00EE) { /* return */
-      if (chip->stack.size > 0) {
-        uint16_t sp = stack_pop(&chip->stack);
-        chip->pc = chip->stack.data[sp];
+      if (chip->sp > 0) {
+        chip->pc = chip->stack[chip->sp--];
       }
     }
     break;
@@ -62,7 +59,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     chip->pc = nnn;
     return;
   case 0x2: /* call nnn */
-    stack_push(&chip->stack, chip->pc);
+    chip->stack[++chip->sp] = chip->pc;
     chip->pc = nnn;
     return;
   case 0x3: /* se vx,nn */
@@ -171,7 +168,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     switch (opcode & 0x00FF) {
     case 0x9E: /* skp vx */
       break;
-    case 0xA1: /* sknp vx */ 
+    case 0xA1: /* sknp vx */
       break;
     }
     break;
@@ -180,7 +177,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x07: /* mov vx,dt */
       chip->V[x] = chip->delay_timer;
       break;
-    case 0x0A: /* key vx */ 
+    case 0x0A: /* key vx */
       break;
     case 0x15: /* mov dt,vx */
       chip->delay_timer = chip->V[x];
@@ -211,19 +208,18 @@ void decode(chip_t *chip, uint16_t opcode) {
       break;
     }
     break;
-    default:
-      printf("unknown opcode: %x", opcode);
-      break;
+  default:
+    printf("unknown opcode: %x", opcode);
+    break;
   }
 }
 void chip_init(chip_t *chip, char *filename) {
   chip->pc = 0x200;
   chip->I = 0;
-  chip->stack = stack_init();
+  chip->sp = -1;
 
   chip->delay_timer = 0;
   chip->sound_timer = 0;
-  chip->ticks = 10;
 
   memset(chip->memory, 0, MEMORY_SIZE);
   memset(chip->display, false, DISPLAY_HEIGHT * DISPLAY_WIDTH);
