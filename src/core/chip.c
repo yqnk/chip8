@@ -240,14 +240,14 @@ void decode(chip_t *chip, uint16_t opcode) {
       for (int i = 0; i <= x; i++) {
         chip->memory[chip->I + i] = chip->V[i];
       }
-      // chip->I += x + 1;
+      chip->I += x + 1;
       // superchip : without this ^
       break;
     case 0x65: /* ld vx,[i] */
       for (int i = 0; i <= x; i++) {
         chip->V[i] = chip->memory[chip->I + i];
       }
-      // chip->I += x + 1;
+      chip->I += x + 1;
       // superchip : without this ^
       break;
     }
