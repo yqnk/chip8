@@ -127,7 +127,6 @@ int main(int argc, char *argv[]) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT ||
           (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
-        // chip_free(&chip);
         quit = 1;
       } else if (event.type == SDL_KEYDOWN) {
         set_key(&chip, event.key.keysym.sym, true);
@@ -136,19 +135,21 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    chip_run(&chip);
-    update_renderer(renderer, chip.display);
-    cycles++;
+    if (quit != 1) {
+      chip_run(&chip);
+      update_renderer(renderer, chip.display);
+      cycles++;
 
-    // [cycles % c] | c: 1 = fast emulation, inf = slow emulation
-    if (cycles % 20 == 0) {
-      chip_timers(&chip);
-    }
+      // [cycles % c] | c: 1 = fast emulation, inf = slow emulation
+      if (cycles % 20 == 0) {
+        chip_timers(&chip);
+      }
 
-    // adjust fps
-    frame_time = SDL_GetTicks() - frame_start;
-    if (frame_time < FRAME_TIME) {
-      SDL_Delay(FRAME_TIME - frame_time);
+      // adjust fps
+      frame_time = SDL_GetTicks() - frame_start;
+      if (frame_time < FRAME_TIME) {
+        SDL_Delay(FRAME_TIME - frame_time);
+      }
     }
   }
 
@@ -157,6 +158,8 @@ int main(int argc, char *argv[]) {
   printf("\nSession:\n");
   printf("Duration: %.2fs\n", duration);
   printf("Cycles: %i\n", cycles);
+
+  chip_free(&chip);
 
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
