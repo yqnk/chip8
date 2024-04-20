@@ -1,12 +1,6 @@
 #include "core/chip.h"
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
-
-#include <SDL2/SDL_timer.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
@@ -133,6 +127,7 @@ int main(int argc, char *argv[]) {
     while (SDL_PollEvent(&event)) {
       if (event.type == SDL_QUIT ||
           (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+        // chip_free(&chip);
         quit = 1;
       } else if (event.type == SDL_KEYDOWN) {
         set_key(&chip, event.key.keysym.sym, true);
