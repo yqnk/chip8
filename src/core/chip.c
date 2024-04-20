@@ -1,5 +1,7 @@
 #include "chip.h"
 
+#include <SDL2/SDL.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +26,24 @@ const char font[FONT_SIZE] = {
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
+
+uint8_t _wrapping_add8(uint8_t a, uint8_t b) {
+  uint8_t r = a + b;
+  // wrapping add
+  if (r < a || r < b) {
+    r = 0 + (b - (UINT8_MAX - a + 1));
+  }
+  return r;
+}
+
+uint16_t _wrapping_add16(uint16_t a, uint16_t b) {
+  uint16_t r = a + b;
+  // wrapping add
+  if (r < a || r < b) {
+    r = 0 + (b - (UINT16_MAX - a + 1));
+  }
+  return r;
+}
 
 uint16_t fetch_opcode(chip_t *chip) {
   uint8_t byte1 = chip->memory[chip->pc];
@@ -50,7 +70,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     if (opcode == 0x00E0) { /* cls */
       memset(chip->display, false, DISPLAY_WIDTH * DISPLAY_HEIGHT);
     } else if (opcode == 0x00EE) { /* return */
-      if (chip->sp > 0) {
+      if (chip->sp > 0 && chip->sp < chip->stack_capacity) {
         chip->pc = chip->stack[chip->sp--];
       } else {
         chip->pc = 0x200; // error, restart
@@ -59,11 +79,21 @@ void decode(chip_t *chip, uint16_t opcode) {
     break;
   case 0x1: /* jump to nnn */
     chip->pc = nnn;
-    return;
+    break;
   case 0x2: /* call nnn */
+    if (chip->sp == chip->stack_capacity - 1) {
+      uint16_t *new_stack =
+          realloc(chip->stack, sizeof(uint16_t) * chip->stack_capacity * 2);
+      if (new_stack == NULL) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        exit(EXIT_FAILURE);
+      }
+      chip->stack = new_stack;
+      chip->stack_capacity *= 2;
+    }
     chip->stack[++chip->sp] = chip->pc;
     chip->pc = nnn;
-    return;
+    break;
   case 0x3: /* se vx,nn */
     if (chip->V[x] == nn) {
       chip->pc += 2;
@@ -82,9 +112,10 @@ void decode(chip_t *chip, uint16_t opcode) {
   case 0x6: /* mov vx,nn */
     chip->V[x] = nn;
     break;
-  case 0x7: /* add vx,nn */
-    chip->V[x] += nn;
-    break;
+  case 0x7: { /* add vx,nn */
+    uint8_t vx = _wrapping_add8(chip->V[x], nn);
+    chip->V[x] = vx;
+  } break;
   case 0x8:
     switch (opcode & 0x000F) {
     case 0x0: /* mov vx,vy */
@@ -115,8 +146,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     case 0x6: { /* shr vx {,vy} */
       uint8_t vx = chip->V[x];
       chip->V[x] = chip->V[y] >> 1;
-      // superchip : chip->V[x] >>= 1;
-      chip->V[0xF] = vx & 0b1;
+      chip->V[0xF] = vx & 0x01;
     } break;
     case 0x7: /* subn vx,vy */
       chip->V[x] = chip->V[y] - chip->V[x];
@@ -126,7 +156,7 @@ void decode(chip_t *chip, uint16_t opcode) {
       uint8_t vx = chip->V[x];
       chip->V[x] = chip->V[y] << 1;
       // superchip : chip->V[x] <<= 1;
-      chip->V[0xF] = vx >> 7;
+      chip->V[0xF] = (vx & 0x80) >> 7;
     } break;
     }
     break;
@@ -139,7 +169,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     chip->I = nnn;
     break;
   case 0xB: /* jump to nnn + V0 */
-    chip->pc = nnn + chip->V[0];
+    chip->pc = nnn + (uint16_t)chip->V[0];
     // superchip : chip->pc = nnn + chip->V[x];
     break;
   case 0xC: { /* rnd vx,nn */
@@ -180,7 +210,7 @@ void decode(chip_t *chip, uint16_t opcode) {
     switch (opcode & 0x00FF) {
     case 0x9E: /* skp vx */
       if (chip->keys[chip->V[x]]) {
-        chip->pc += 2;
+        chip->pc = _wrapping_add16(chip->pc, 0x2);
       }
       break;
     case 0xA1: /* sknp vx */
@@ -203,7 +233,7 @@ void decode(chip_t *chip, uint16_t opcode) {
           keycode = i;
           chip->halted = true;
 
-          SDL_Delay(150); // short delay after reading the key before checking
+          SDL_Delay(200); // short delay after reading the key before checking
                           // for its release
           break;
         }
@@ -225,12 +255,13 @@ void decode(chip_t *chip, uint16_t opcode) {
       break;
     case 0x1E: { /* add i,vx */
       uint16_t tmpi = chip->I;
-      chip->I += chip->V[x];
+      chip->I = _wrapping_add16(tmpi, (uint16_t)chip->V[x]);
       chip->V[0xF] = (tmpi + chip->V[x] > 0xFFF);
     } break;
-    case 0x29: /* ld f,vx */
-      chip->I = chip->V[x] * 0x05;
-      break;
+    case 0x29: { /* ld f,vx */
+      uint8_t digit = chip->V[x] & 0x0F;
+      chip->I = 0x000 + (uint16_t)(digit * 5);
+    } break;
     case 0x33: /* ld b,vx */
       chip->memory[chip->I] = chip->V[x] / 100;
       chip->memory[chip->I + 1] = (chip->V[x] / 10) % 10;
@@ -240,14 +271,14 @@ void decode(chip_t *chip, uint16_t opcode) {
       for (int i = 0; i <= x; i++) {
         chip->memory[chip->I + i] = chip->V[i];
       }
-      chip->I += x + 1;
+      chip->I = _wrapping_add16(chip->I, (uint16_t)x + 1);
       // superchip : without this ^
       break;
     case 0x65: /* ld vx,[i] */
       for (int i = 0; i <= x; i++) {
         chip->V[i] = chip->memory[chip->I + i];
       }
-      chip->I += x + 1;
+      chip->I = _wrapping_add16(chip->I, (uint16_t)x + 1);
       // superchip : without this ^
       break;
     }
@@ -266,6 +297,9 @@ void chip_init(chip_t *chip, char *filename) {
 
   chip->delay_timer = 0;
   chip->sound_timer = 0;
+
+  chip->stack_capacity = 64;
+  chip->stack = calloc(chip->stack_capacity, sizeof(uint16_t));
 
   memset(chip->memory, 0, MEMORY_SIZE);
   memset(chip->display, false, DISPLAY_HEIGHT * DISPLAY_WIDTH);
@@ -301,6 +335,8 @@ int chip_load(char *filename, uint8_t *buffer) {
   fread(buffer, 1, file_size, file);
   return 0;
 }
+
+void chip_free(chip_t *chip) { free(chip->stack); }
 
 void chip_timers(chip_t *chip) {
   if (chip->delay_timer > 0) {

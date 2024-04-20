@@ -19,7 +19,8 @@ struct chip {
   uint16_t pc;
 
   uint16_t sp;
-  uint16_t stack[16];
+  uint16_t *stack;
+  int stack_capacity;
 
   uint8_t memory[MEMORY_SIZE];
   bool display[DISPLAY_WIDTH][DISPLAY_HEIGHT];
@@ -37,6 +38,7 @@ void decode(chip_t *chip, uint16_t opcode);
 
 void chip_init(chip_t *chip, char *filename);
 int chip_load(char *filename, uint8_t *buffer);
+void chip_free(chip_t *chip);
 
 void chip_timers(chip_t *chip);
 void chip_run(chip_t *chip);
